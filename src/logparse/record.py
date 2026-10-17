@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -9,31 +10,12 @@ class LogLevel(Enum):
     CRITICAL = 50
 
 
+@dataclass(frozen=True, slots=True)
 class LogRecord:
-    def __init__(
-        self, timestamp: str, level: LogLevel, component: str, message: str
-    ) -> None:
-        self.timestamp = timestamp
-        self.level = level
-        self.component = component
-        self.message = message
-
-    def _key(self) -> tuple[str, LogLevel, str, str]:
-        return (self.timestamp, self.level, self.component, self.message)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, LogRecord):
-            return NotImplemented
-        return self._key() == other._key()
-
-    def __hash__(self) -> int:
-        return hash(self._key())
-
-    def __repr__(self) -> str:
-        return (
-            f"LogRecord({self.timestamp!r}, {self.level}, "
-            f"{self.component!r}, {self.message!r})"
-        )
+    timestamp: str
+    level: LogLevel
+    component: str
+    message: str
 
     def __str__(self) -> str:
         return f"{self.level.name} {self.component}: {self.message}"
