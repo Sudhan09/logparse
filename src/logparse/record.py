@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from logparse.errors import MalformedLineError, UnknownLevelError
+
 
 class LogLevel(Enum):
     DEBUG = 10
@@ -22,6 +24,13 @@ class LogRecord:
 
 
 def parse_line(line: str) -> LogRecord:
-    timestamp, level, rest = line.split(" ", 2)
-    component, message = rest.split(": ", 1)
-    return LogRecord(timestamp, LogLevel[level], component, message)
+    try:
+        timestamp, level, rest = line.split(" ", 2)
+        component, message = rest.split(": ", 1)
+    except ValueError as exc:
+        raise MalformedLineError(f"bad shape: {line}") from exc
+    try:
+        lvl = LogLevel[level]
+    except KeyError as exc:
+        raise UnknownLevelError(f"unknown level: {level}") from exc
+    return LogRecord(timestamp, lvl, component, message)
