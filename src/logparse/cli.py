@@ -5,6 +5,7 @@ import sys
 from logparse.config import ParserConfig
 from logparse.filters import timed
 from logparse.pipeline import run
+from logparse.record import LogLevel
 
 LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
@@ -20,7 +21,10 @@ def build_parser():
 
 
 def make_config(args):
-    levels = [args.level] if args.level else None
+    levels = None
+    if args.level:
+        floor = LogLevel[args.level].value
+        levels = [lv.name for lv in LogLevel if lv.value >= floor]
     patterns = [args.pattern] if args.pattern else None
     return ParserConfig.from_lists(levels=levels, patterns=patterns)
 
