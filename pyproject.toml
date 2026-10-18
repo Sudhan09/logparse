@@ -7,7 +7,7 @@ requires-python = ">=3.14"
 dependencies = []
 
 [project.scripts]
-logparse = "logparse:main"
+logparse = "logparse.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12.22,<0.13.0"]
