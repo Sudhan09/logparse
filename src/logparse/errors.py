@@ -1,5 +1,5 @@
 class ParseError(ValueError):
-    transient = False
+    transient: bool = False
 
 
 class MalformedLineError(ParseError):

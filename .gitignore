@@ -2,4 +2,5 @@
 drills/
 /*.log
 __pycache__/
-.*_cache/big.log
+.*_cache/
+big.log

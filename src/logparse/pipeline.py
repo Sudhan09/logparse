@@ -2,30 +2,32 @@ import itertools
 import json
 import sys
 from collections import Counter
-from contextlib import ExitStack, suppress
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import ExitStack
 
+from logparse.config import ParserConfig
 from logparse.errors import ParseError
 from logparse.files import open_log
 from logparse.filters import all_of, matches
-from logparse.record import parse_line
+from logparse.record import LogRecord, parse_line
 
 
-def read_lines(path):
+def read_lines(path: str) -> Iterator[str]:
     if path == "-":
-        for line in sys.stdin:
-            yield line.rstrip("\n")
+        yield from lines_from(sys.stdin)
         return
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            yield line.rstrip("\n")
+    with open_log(path) as f:
+        yield from lines_from(f)
 
 
-def lines_from(f):
+def lines_from(f: Iterable[str]) -> Iterator[str]:
     for line in f:
         yield line.rstrip("\n")
 
 
-def parse(lines, errors=None, file="-"):
+def parse(
+    lines: Iterable[str], errors: "CappedList | None" = None, file: str = "-"
+) -> Iterator[LogRecord]:
     for line_no, line in enumerate(lines, start=1):
         try:
             record = parse_line(line)
@@ -43,13 +45,15 @@ def parse(lines, errors=None, file="-"):
             yield record
 
 
-def keep(records, pred):
+def keep(
+    records: Iterable[LogRecord], pred: Callable[[LogRecord], bool]
+) -> Iterator[LogRecord]:
     for r in records:
         if pred(r):
             yield r
 
 
-def jsonl_chunks(records, size=1000):
+def jsonl_chunks(records: Iterable[LogRecord], size: int = 1000) -> Iterator[str]:
     for batch in itertools.batched(records, size, strict=False):
         lines = []
         for r in batch:
@@ -63,7 +67,12 @@ def jsonl_chunks(records, size=1000):
         yield "\n".join(lines)
 
 
-def run(paths, config, head=None, max_errors=1000):
+def run(
+    paths: list[str],
+    config: ParserConfig,
+    head: int | None = None,
+    max_errors: int = 1000,
+) -> dict:
     errors = CappedList(max_errors)
     with ExitStack() as stack:
         streams = []
@@ -102,20 +111,21 @@ def run(paths, config, head=None, max_errors=1000):
         return report
 
 
-def read_source(path):
-    with suppress(FileNotFoundError):
+def read_source(path: str) -> str | None:
+    try:
         with open(f"{path}.meta.json", encoding="utf-8") as f:
             return json.load(f)["source"]
-    return None
+    except FileNotFoundError, KeyError, json.JSONDecodeError:
+        return None
 
 
 class CappedList:
-    def __init__(self, limit):
+    def __init__(self, limit: int) -> None:
         self.limit = limit
         self.items = []
         self.count = 0
 
-    def append(self, item):
+    def append(self, item: dict) -> None:
         self.count += 1
         if len(self.items) < self.limit:
             self.items.append(item)
